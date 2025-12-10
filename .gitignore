@@ -1,0 +1,57 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+.eggs/
+
+# Virtualenv
+.venv/
+venv/
+ENV/
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS / tooling
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Python tooling
+.mypy_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Node / frontend (if added later)
+node_modules/
+
+# Docker / build artifacts
+/dist/
+/build/
+/.cache/
+app/.cache/
+
+# Hugging Face / model caches
+/app/.cache/huggingface/
+/app/.cache/torch/
+HF_HOME/
+HF_HUB_CACHE/
+TORCH_HOME/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Misc
+.env
+.env.*
+*.sqlite3

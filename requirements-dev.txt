@@ -1,0 +1,18 @@
+# Development & Testing Dependencies
+# ===================================
+
+-r requirements.txt
+
+# Testing
+pytest>=8.0.0
+pytest-asyncio>=0.23.0
+pytest-cov>=4.1.0
+httpx>=0.26.0
+
+# Code quality
+ruff>=0.1.9
+mypy>=1.8.0
+
+# Type stubs
+types-pyyaml>=6.0.12
+types-aiofiles>=23.2.0

@@ -1,0 +1,51 @@
+version: "3.8"
+
+services:
+  jina-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: jina-local-server
+    ports:
+      - "8080:8080"
+    
+    # Load environment variables from .env file
+    env_file:
+      - .env
+    
+    # Override or add additional environment variables here
+    environment:
+      # These can override .env values or provide defaults
+      - DEVICE=${DEVICE:-cuda}
+      - TORCH_DTYPE=${TORCH_DTYPE:-float16}
+      - MODELS_TO_LOAD=${MODELS_TO_LOAD:-all}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - LOG_FORMAT=${LOG_FORMAT:-json}
+      - MAX_BATCH_SIZE=${MAX_BATCH_SIZE:-32}
+      - HF_TOKEN=${HF_TOKEN:-}
+    
+    volumes:
+      # Persist model cache to avoid re-downloading
+      - model-cache:/app/.cache
+    
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    
+    restart: unless-stopped
+    
+    # Healthcheck is defined in Dockerfile, but can be overridden here
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/healthz')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 180s
+
+volumes:
+  model-cache:
+    name: jina-model-cache

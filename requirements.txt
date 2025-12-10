@@ -1,0 +1,32 @@
+# Jina Local API Server - Core Dependencies
+# ==========================================
+
+# Web Framework
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+pydantic>=2.5.0
+pydantic-settings>=2.1.0
+
+# ML/AI
+torch>=2.1.0
+transformers>=4.53.0
+einops>=0.7.0
+peft>=0.15.2
+accelerate>=0.26.0
+
+# Image processing (for jina-embeddings-v4)
+pillow>=10.0.0
+torchvision>=0.16.0
+
+# Structured logging
+structlog>=24.1.0
+
+# Config
+pyyaml>=6.0.1
+
+# HTTP client (for image downloads)
+httpx>=0.26.0
+aiofiles>=23.2.1
+
+# Utilities
+numpy>=1.24.0,<2.0
