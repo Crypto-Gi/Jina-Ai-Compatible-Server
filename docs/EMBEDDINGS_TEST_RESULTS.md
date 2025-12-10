@@ -1,11 +1,113 @@
-# Jina Embeddings V3 & V4 – Test Results
+# Jina Local API – Test Report (v0.2)
 
-This document records the end-to-end tests run against the local Jina-compatible API server for:
+- **Date**: 2025-12-10 (UTC)
+- **Models covered**: `jina-embeddings-v3`, `jina-embeddings-v4`, `jina-code-embeddings-0.5b`, `jina-code-embeddings-1.5b`, `jina-reranker-v3`
+- **Goal**: Verify API compatibility, feature coverage (tasks, dimensions/MRL, late chunking, embedding types, reranking options), and behavioral alignment with the official Jina AI API.
 
-- `jina-embeddings-v3`
-- `jina-embeddings-v4`
+### Summary at a Glance
 
-The goal is to verify **API compatibility**, **feature coverage** (tasks, dimensions, late chunking, embedding types), and **behavioral alignment** with the official Jina AI API.
+| Component                    | Status | Notes                                                  |
+|-----------------------------|--------|--------------------------------------------------------|
+| V3 text embeddings          | ✅     | Tasks, MRL, late chunking, embedding types             |
+| V4 multimodal embeddings    | ✅*    | Text fully tested; images OOM; PDF not yet implemented |
+| Code embeddings 0.5b / 1.5b | ✅     | All tasks, MRL, embedding types                        |
+| Reranker v3                 | ✅     | top_n, return_documents, error handling                |
+
+\* V4 image tests are limited by local GPU memory; PDF input is not yet wired in the schema.
+
+### How to Read This Document
+
+- **Tables** summarize what was tested and the observed behavior.
+- **Curl examples** below show how to reproduce representative tests for each model.
+
+### Quick API Examples
+
+**V3 – basic embedding**
+
+```bash
+curl -s http://localhost:8080/v1/embeddings \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "jina-embeddings-v3",
+    "input": ["Hello world"]
+  }'
+```
+
+**V3 – late chunking + dimensions**
+
+```bash
+curl -s http://localhost:8080/v1/embeddings \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "jina-embeddings-v3",
+    "input": [
+      "Berlin is the capital of Germany.",
+      "It has a population of 3.6 million."
+    ],
+    "late_chunking": true,
+    "dimensions": 512
+  }'
+```
+
+**V4 – text-matching with late chunking**
+
+```bash
+curl -s http://localhost:8080/v1/embeddings \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "jina-embeddings-v4",
+    "task": "text-matching",
+    "late_chunking": true,
+    "truncate": true,
+    "input": [
+      "Berlin is the capital of Germany.",
+      "It has a population of 3.6 million.",
+      "The city is known for its history."
+    ]
+  }'
+```
+
+**Code embeddings 0.5b – nl2code.query**
+
+```bash
+curl -s http://localhost:8080/v1/embeddings \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "jina-code-embeddings-0.5b",
+    "task": "nl2code.query",
+    "input": ["function to sort an array in Python"]
+  }'
+```
+
+**Code embeddings 1.5b – MRL dimensions**
+
+```bash
+curl -s http://localhost:8080/v1/embeddings \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "jina-code-embeddings-1.5b",
+    "input": ["def add(a, b): return a + b"],
+    "dimensions": 512
+  }'
+```
+
+**Reranker v3 – top_n and return_documents**
+
+```bash
+curl -s http://localhost:8080/v1/rerank \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "jina-reranker-v3",
+    "query": "What is machine learning?",
+    "documents": [
+      "Machine learning is a subset of AI.",
+      "The weather is nice today.",
+      "Deep learning uses neural networks."
+    ],
+    "top_n": 2,
+    "return_documents": true
+  }'
+```
 
 ---
 
