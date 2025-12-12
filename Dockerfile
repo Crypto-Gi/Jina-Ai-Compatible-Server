@@ -37,9 +37,10 @@ RUN pip install --no-cache-dir \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Skip flash-attention - causes segfaults on newer GPUs (e.g., RTX 5090)
-# The models will fall back to PyTorch's native SDPA which is still fast
-RUN echo "Skipping flash-attention installation for GPU compatibility"
+# NOTE: Flash attention causes segfaults with jina-embeddings-v3 on RTX 5090 (Blackwell)
+# The xlm-roberta-flash-implementation used by V3 is not compatible with Blackwell yet
+# Skipping flash-attn installation - PyTorch's native SDPA will be used instead
+RUN echo "Skipping flash-attention - not compatible with RTX 5090 Blackwell for V3 model"
 
 # ============================================
 # Stage 2: Runtime - Minimal production image
@@ -79,7 +80,6 @@ RUN mkdir -p /app/.cache && chown -R appuser:appuser /app/.cache
 USER appuser
 
 # Environment variables
-# ATTN_BACKEND=sdpa disables flash attention to avoid segfaults on newer GPUs (e.g., RTX 5090)
 ENV DEVICE=cuda \
     HF_HOME=/app/.cache/huggingface \
     HF_HUB_CACHE=/app/.cache/huggingface/hub \
@@ -88,9 +88,7 @@ ENV DEVICE=cuda \
     LOG_FORMAT=json \
     MODELS_TO_LOAD=all \
     MAX_BATCH_SIZE=32 \
-    TORCH_DTYPE=float16 \
-    FLASH_ATTENTION_SKIP_CUDA_BUILD=TRUE \
-    ATTN_BACKEND=sdpa
+    TORCH_DTYPE=float16
 
 # Expose port
 EXPOSE 8080

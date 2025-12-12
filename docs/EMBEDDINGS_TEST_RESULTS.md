@@ -471,7 +471,137 @@ Results are sorted by `relevance_score` descending. The most relevant document a
 
 ---
 
-## 6. Endpoints & Health
+## 6. qwen3-reranker-0.6b – Test Matrix
+
+### 6.1 Basic Reranking
+
+| Test ID  | Description  | Params                                                   | Result                                                                      |
+|---------:|--------------|----------------------------------------------------------|-----------------------------------------------------------------------------|
+| QW-RR-01 | Basic rerank | `model="qwen3-reranker-0.6b"`, simple query + 3–4 docs | 3–4 results, sorted by `relevance_score` (0–1), Beijing-like answer on top |
+
+The wrapper uses a yes/no scoring head and converts raw logits to probabilities in the **0–1** range.
+
+### 6.2 `top_n` Parameter
+
+| Test ID  | top_n | Documents | Results Returned | Status |
+|---------:|-------|-----------|------------------|--------|
+| QW-RR-10 | 1     | 3         | 1                | ✅     |
+| QW-RR-11 | 2     | 3         | 2                | ✅     |
+| QW-RR-12 | None  | 3         | 3 (all)          | ✅     |
+
+### 6.3 `return_documents` Parameter
+
+| Test ID  | return_documents | Result                                                |
+|---------:|------------------|-------------------------------------------------------|
+| QW-RR-20 | `false` (default) | Results only have `index` and `relevance_score`      |
+| QW-RR-21 | `true`           | Each result includes `document.text`                 |
+
+### 6.4 Error Handling
+
+| Test ID  | Case            | Result / Behavior                            |
+|---------:|-----------------|-----------------------------------------------|
+| QW-RR-30 | Invalid model   | `invalid_request_error` / 404-style error    |
+| QW-RR-31 | Empty documents | Validation error (422, `documents` too short) |
+
+---
+
+## 7. bge-m3 – Test Matrix
+
+### 7.1 Basic Embeddings
+
+| Test ID  | Description           | Params                              | Result                          |
+|---------:|-----------------------|-------------------------------------|---------------------------------|
+| BGE-01   | Basic embedding       | `model="bge-m3"`, single input      | 1024-dim embedding, normalized  |
+| BGE-02   | Multiple inputs       | 3 texts                             | 3 embeddings, correct token count |
+
+### 7.2 MRL Dimensions
+
+| Test ID  | dimensions | Actual Output | Status |
+|---------:|------------|---------------|--------|
+| BGE-10   | 256        | 256           | ✅     |
+| BGE-11   | 512        | 512           | ✅     |
+| BGE-12   | 768        | 768           | ✅     |
+| BGE-13   | 1024       | 1024          | ✅     |
+
+### 7.3 Embedding Types
+
+| Test ID  | encoding_format | Result                              |
+|---------:|-----------------|-------------------------------------|
+| BGE-20   | `float`         | Array of floats                     |
+| BGE-21   | `base64`        | Base64-encoded embedding            |
+
+### 7.4 Late Chunking Comparison
+
+**Test scenario**: 3 chunks from same document about Berlin
+
+| Chunk | Text                                              |
+|------:|---------------------------------------------------|
+| 1     | "Berlin is the capital of Germany."               |
+| 2     | "It has a population of 3.5 million."             |
+| 3     | "The city is known for its history and culture."  |
+
+**Query**: "What is the population of Berlin?"
+
+#### Query Similarity Results
+
+| Chunk | Standard | Late Chunking | Δ       |
+|------:|---------:|--------------:|--------:|
+| 1     | 0.6839   | 0.6434        | -5.9%   |
+| 2     | 0.5490   | 0.6471        | **+17.9%** |
+| 3     | 0.4129   | 0.6327        | **+53.2%** |
+
+**Key insight**: Chunk 2 ("population of 3.5 million") gains +17.9% similarity to the query about population, because late chunking preserves context that "It" refers to "Berlin".
+
+#### Inter-Chunk Similarity (same document)
+
+| Pair          | Standard | Late Chunking | Δ         |
+|---------------|----------|---------------|-----------|
+| Chunk 1 ↔ 2   | 0.4683   | 0.9980        | **+113.1%** |
+| Chunk 1 ↔ 3   | 0.5411   | 0.9877        | **+82.6%**  |
+| Chunk 2 ↔ 3   | 0.5889   | 0.9925        | **+68.5%**  |
+
+**Summary**:
+
+- Avg query similarity improvement: **+21.7%**
+- Avg inter-chunk similarity improvement: **+88.1%**
+
+Late chunking dramatically improves coherence for chunks from the same document.
+
+---
+
+## 8. bge-reranker-v2-m3 – Test Matrix
+
+### 8.1 Basic Reranking
+
+| Test ID  | Description  | Params                                                    | Result                                                                      |
+|---------:|--------------|-----------------------------------------------------------|-----------------------------------------------------------------------------|
+| BGE-RR-01 | Basic rerank | `model="bge-reranker-v2-m3"`, query + 4 docs            | 4 results, sorted by `relevance_score` (0–1), Beijing answer on top (0.9999) |
+
+### 8.2 `top_n` Parameter
+
+| Test ID   | top_n | Documents | Results Returned | Status |
+|----------:|-------|-----------|------------------|--------|
+| BGE-RR-10 | 1     | 3         | 1                | ✅     |
+| BGE-RR-11 | 2     | 3         | 2                | ✅     |
+| BGE-RR-12 | None  | 3         | 3 (all)          | ✅     |
+
+### 8.3 `return_documents` Parameter
+
+| Test ID   | return_documents | Result                                                |
+|----------:|------------------|-------------------------------------------------------|
+| BGE-RR-20 | `false`          | Results only have `index` and `relevance_score`       |
+| BGE-RR-21 | `true`           | Each result includes `document.text`                  |
+
+### 8.4 Error Handling
+
+| Test ID   | Case            | Result / Behavior                            |
+|----------:|-----------------|-----------------------------------------------|
+| BGE-RR-30 | Invalid model   | `invalid_request_error`                       |
+| BGE-RR-31 | Empty documents | Validation error (422, `documents` too short) |
+
+---
+
+## 9. Endpoints & Health
 
 | Endpoint      | Behavior                                                              |
 |---------------|-----------------------------------------------------------------------|
@@ -481,7 +611,7 @@ Results are sorted by `relevance_score` descending. The most relevant document a
 
 ---
 
-## 7. Conclusions
+## 10. Conclusions
 
 - **V3**: All documented features (tasks, matryoshka dimensions, late chunking, embedding types) behave correctly and are compatible with official Jina docs (including proper adapter usage via `adapter_mask`).
 - **V4**: Text-side API behavior (tasks, dimensions, late chunking, multivector groundwork, embedding types) matches the official API semantics.
@@ -492,3 +622,299 @@ Results are sorted by `relevance_score` descending. The most relevant document a
   - 1.5b: 1536-dim default, 32768 max tokens
 - **Reranker V3**: Listwise reranking works correctly. `top_n` and `return_documents` parameters behave as per Jina API spec. Results are properly sorted by relevance score.
 - **Late Chunking**: Across realistic scenarios, late chunking improves intra-document chunk similarity by **~8.8% on average**, with very large gains on strongly-related chunks (20%+ in some tests).
+
+
+---
+
+## Qwen3-4B and Jina V4 Benchmark Results
+
+**Tested**: 2025-12-10T21:22:56.173895
+
+### Qwen3-Embedding-4B (Standard Only)
+
+Qwen3 models do not support late chunking (uses last-token pooling).
+
+| Test | P@3 | MRR | NDCG@3 |
+|------|-----|-----|--------|
+| test1 | 73.33% | 1.0000 | 1.0000 |
+| test2 | 66.67% | 1.0000 | 1.0000 |
+| test3 | 53.33% | 1.0000 | 0.9839 |
+| **Average** | **64.44%** | **1.0000** | **0.9946** |
+
+### Jina-Embeddings-V4 (Standard)
+
+| Test | P@3 | MRR | NDCG@3 |
+|------|-----|-----|--------|
+| test1 | 66.67% | 1.0000 | 0.9839 |
+| test2 | 46.67% | 0.7667 | 0.8262 |
+| test3 | 70.00% | 1.0000 | 1.0000 |
+| **Average** | **61.11%** | **0.9222** | **0.9367** |
+
+### Jina-Embeddings-V4 (Late Chunking)
+
+| Test | P@3 | MRR | NDCG@3 |
+|------|-----|-----|--------|
+| test1 | 60.00% | 1.0000 | 0.9679 |
+| test2 | 53.33% | 0.7000 | 0.7226 |
+| test3 | 60.00% | 0.9333 | 0.9339 |
+| **Average** | **57.78%** | **0.8778** | **0.8748** |
+
+### Late Chunking Impact (Jina V4)
+
+| Test | Standard P@3 | Late P@3 | Delta |
+|------|--------------|----------|-------|
+| test1 | 66.67% | 60.00% | -6.67% |
+| test2 | 46.67% | 53.33% | +6.67% |
+| test3 | 70.00% | 60.00% | -10.00% |
+| **Average** | 61.11% | 57.78% | -3.33% |
+
+### Comparison: All Embedding Models
+
+| Model | Avg P@3 | Avg MRR | Late Chunking |
+|-------|---------|---------|---------------|
+| qwen3-embedding-4b | 64.4% | 1.0000 | N/A |
+| jina-embeddings-v4 | 61.1% | 0.9222 | Standard |
+| jina-embeddings-v4 (late) | 57.8% | 0.8778 | Enabled |
+
+
+---
+
+## Qwen3-4B and Jina V4 Benchmark Results
+
+**Tested**: 2025-12-10T21:33:00.543898
+
+### Qwen3-Embedding-4B (Standard Only)
+
+Qwen3 models do not support late chunking (uses last-token pooling).
+
+| Test | P@3 | MRR | NDCG@3 |
+|------|-----|-----|--------|
+| test1 | 73.33% | 1.0000 | 1.0000 |
+| test2 | 66.67% | 1.0000 | 1.0000 |
+| test3 | 53.33% | 1.0000 | 0.9839 |
+| **Average** | **64.44%** | **1.0000** | **0.9946** |
+
+### Jina-Embeddings-V4 (Standard)
+
+| Test | P@3 | MRR | NDCG@3 |
+|------|-----|-----|--------|
+| test1 | 66.67% | 1.0000 | 0.9839 |
+| test2 | 46.67% | 0.7667 | 0.8262 |
+| test3 | 70.00% | 1.0000 | 1.0000 |
+| **Average** | **61.11%** | **0.9222** | **0.9367** |
+
+### Jina-Embeddings-V4 (Late Chunking)
+
+| Test | P@3 | MRR | NDCG@3 |
+|------|-----|-----|--------|
+| test1 | 60.00% | 1.0000 | 1.0000 |
+| test2 | 66.67% | 0.9000 | 0.9066 |
+| test3 | 70.00% | 1.0000 | 0.9759 |
+| **Average** | **65.56%** | **0.9667** | **0.9608** |
+
+### Late Chunking Impact (Jina V4)
+
+| Test | Standard P@3 | Late P@3 | Delta |
+|------|--------------|----------|-------|
+| test1 | 66.67% | 60.00% | -6.67% |
+| test2 | 46.67% | 66.67% | +20.00% |
+| test3 | 70.00% | 70.00% | +0.00% |
+| **Average** | 61.11% | 65.56% | +4.44% |
+
+### Comparison: All Embedding Models
+
+| Model | Avg P@3 | Avg MRR | Late Chunking |
+|-------|---------|---------|---------------|
+| qwen3-embedding-4b | 64.4% | 1.0000 | N/A |
+| jina-embeddings-v4 | 61.1% | 0.9222 | Standard |
+| jina-embeddings-v4 (late) | 65.6% | 0.9667 | Enabled |
+
+---
+
+## 11. Comprehensive Embedding & Reranker Benchmark (December 2024)
+
+This section contains the final comprehensive benchmark results comparing all local and external embedding/reranker models.
+
+### 11.1 Jina API Compatibility Test Results
+
+**Test Date**: December 11, 2024  
+**Result**: 33/33 tests passed (100.0%)
+
+| Test Category | Tests | Status | Details |
+|---------------|-------|--------|---------|
+| V4 Standard Embedding | 1 | ✅ PASS | Similarity: 0.9998, dim: 2048 |
+| V4 Late Chunking | 1 | ✅ PASS | Avg similarity: 0.9849, dim: 2048 |
+| V4 Dimensions | 4 | ✅ PASS | 128, 256, 512, 1024 all match |
+| V4 Tasks | 5 | ✅ PASS | retrieval.query/passage, text-matching, code.query/passage |
+| V4 Embedding Types | 2 | ✅ PASS | float, base64 |
+| V3 Tasks | 5 | ✅ PASS | retrieval.query/passage, text-matching, separation, classification |
+| V3 Late Chunking | 1 | ✅ PASS | Avg similarity: 0.9613, dim: 1024 |
+| Reranker Basic | 1 | ✅ PASS | Order match: True, Score correlation: 1.0000 |
+| Reranker top_n | 3 | ✅ PASS | top_n=1,2,3 all correct |
+| Reranker return_documents | 2 | ✅ PASS | True/False both work |
+| Benchmark Tests | 6 | ✅ PASS | All P@3 scores match official API |
+
+**Key Validation**: Local server produces identical results to official Jina API across all test scenarios.
+
+### 11.2 Final Embedding Model Benchmark
+
+**Models Tested**:
+- **Local**: jina-embeddings-v4 (late chunking), qwen3-embedding-4b, qwen3-embedding-0.6b
+- **External**: voyage-context-3, voyage-3.5, gemini-embedding-001
+
+**API Configurations** (verified from official documentation):
+- Gemini: `RETRIEVAL_QUERY` for queries, `RETRIEVAL_DOCUMENT` for documents
+- Voyage voyage-3.5: `embed()` with `input_type="query"` or `"document"`
+- Voyage voyage-context-3: `contextualized_embed()` with `inputs=[[chunks...]]` format
+
+#### Results by Test File
+
+| Model | test1 | test2 | test3 | **Average** |
+|-------|-------|-------|-------|-------------|
+| **voyage-context-3** | 66.7% | 73.3% | **83.3%** | **74.4%** |
+| **qwen3-4b** | **73.3%** | **73.3%** | 53.3% | 66.7% |
+| **voyage-3.5** | 66.7% | 46.7% | **83.3%** | 65.6% |
+| **qwen3-0.6b** | **73.3%** | 66.7% | 53.3% | 64.4% |
+| **jina-v4-late** | 66.7% | 60.0% | 63.3% | 63.3% |
+| **gemini-001** | 66.7% | 53.3% | 70.0% | 63.3% |
+
+#### Overall Ranking (by Average P@3)
+
+| Rank | Model | Avg P@3 | Type |
+|------|-------|---------|------|
+| 🥇 1 | **voyage-context-3** | **74.4%** | External (Voyage) |
+| 🥈 2 | qwen3-embedding-4b | 66.7% | Local |
+| 🥉 3 | voyage-3.5 | 65.6% | External (Voyage) |
+| 4 | qwen3-embedding-0.6b | 64.4% | Local |
+| 5 | jina-embeddings-v4 (late) | 63.3% | Local |
+| 6 | gemini-embedding-001 | 63.3% | External (Google) |
+
+#### Key Findings - Embeddings
+
+1. **voyage-context-3 wins overall** with 74.4% average P@3 - contextualized embeddings provide significant advantage
+2. **voyage-context-3 excels on test3** (single-doc ECOS) with 83.3% - best for single-document retrieval
+3. **qwen3-4b is best local model** at 66.7% - excellent for multi-doc tests (test1, test2)
+4. **Local models are competitive** - qwen3-4b matches or beats external APIs except voyage-context-3
+5. **jina-v4-late matches official API** exactly at 63.3% - validated drop-in replacement
+6. **Gemini performs well on test3** (70%) but struggles on test2 (53.3%)
+
+### 11.3 Final Reranker Benchmark
+
+**Models Tested**:
+- **Local**: jina-reranker-v3, bge-reranker-v2-m3, qwen3-reranker-0.6b, qwen3-reranker-4b
+- **External**: voyage rerank-2.5, voyage rerank-2.5-lite
+
+**API Configurations** (verified from official documentation):
+- Local `/v1/rerank`: `model`, `query`, `documents`, `top_n`, `return_documents`
+- Voyage: `vo.rerank(query, documents, model="rerank-2.5", top_k=3)`
+
+#### Results by Test File
+
+| Model | test1 | test2 | test3 | **Average** |
+|-------|-------|-------|-------|-------------|
+| **voyage-rerank-2.5** | 73.3% | 53.3% | **76.7%** | **67.8%** |
+| **jina-reranker-v3** | **80.0%** | 53.3% | 66.7% | 66.7% |
+| **bge-reranker-v2-m3** | 66.7% | **60.0%** | 70.0% | 65.6% |
+| **qwen3-reranker-0.6b** | 66.7% | 53.3% | 70.0% | 63.3% |
+| **qwen3-reranker-4b** | 60.0% | **60.0%** | 70.0% | 63.3% |
+| **voyage-rerank-2.5-lite** | 53.3% | 53.3% | **76.7%** | 61.1% |
+
+#### Overall Ranking (by Average P@3)
+
+| Rank | Model | Avg P@3 | Type |
+|------|-------|---------|------|
+| 🥇 1 | **voyage-rerank-2.5** | **67.8%** | External (Voyage) |
+| 🥈 2 | jina-reranker-v3 | 66.7% | Local |
+| 🥉 3 | bge-reranker-v2-m3 | 65.6% | Local |
+| 4 | qwen3-reranker-0.6b | 63.3% | Local |
+| 5 | qwen3-reranker-4b | 63.3% | Local |
+| 6 | voyage-rerank-2.5-lite | 61.1% | External (Voyage) |
+
+#### Key Findings - Rerankers
+
+1. **voyage-rerank-2.5 wins overall** at 67.8% - best for single-doc retrieval (test3: 76.7%)
+2. **jina-reranker-v3 is best local model** at 66.7% - excels on multi-doc test1 (80.0%)
+3. **bge-reranker-v2-m3 is most consistent** - solid across all tests (60-70%)
+4. **Local models are highly competitive** - top 3 local models within 2% of Voyage
+5. **qwen3-reranker-4b doesn't outperform 0.6b** - same average despite 6x more params
+6. **voyage-rerank-2.5-lite underperforms** - 6.7% below full model
+
+### 11.4 Best Model Recommendations
+
+#### By Use Case - Embeddings
+
+| Use Case | Best Model | P@3 |
+|----------|------------|-----|
+| Single-doc retrieval (test3) | voyage-context-3, voyage-3.5 | 83.3% |
+| Multi-doc retrieval (test1, test2) | qwen3-embedding-4b | 73.3% |
+| Best overall | voyage-context-3 | 74.4% |
+| Best local/self-hosted | qwen3-embedding-4b | 66.7% |
+| Drop-in Jina replacement | jina-embeddings-v4 (late) | 63.3% |
+
+#### By Use Case - Rerankers
+
+| Use Case | Best Model | P@3 |
+|----------|------------|-----|
+| Single-doc retrieval (test3) | voyage-rerank-2.5, voyage-rerank-2.5-lite | 76.7% |
+| Multi-doc retrieval (test1) | jina-reranker-v3 | 80.0% |
+| Best overall | voyage-rerank-2.5 | 67.8% |
+| Best local/self-hosted | jina-reranker-v3 | 66.7% |
+| Best value (small & fast) | qwen3-reranker-0.6b | 63.3% |
+
+### 11.5 Complete Model Comparison Summary
+
+#### All Embedding Models (Including Qwen3-8B)
+
+| Model | test1 | test2 | test3 | **Average** | Type |
+|-------|-------|-------|-------|-------------|------|
+| voyage-context-3 | 66.7% | 73.3% | 83.3% | **74.4%** | External |
+| qwen3-embedding-4b | 73.3% | 73.3% | 53.3% | 66.7% | Local |
+| voyage-3.5 | 66.7% | 46.7% | 83.3% | 65.6% | External |
+| qwen3-embedding-0.6b | 73.3% | 66.7% | 53.3% | 64.4% | Local |
+| jina-v4 (late chunking) | 66.7% | 60.0% | 63.3% | 63.3% | Local |
+| gemini-embedding-001 | 66.7% | 53.3% | 70.0% | 63.3% | External |
+| qwen3-embedding-8b | 66.7% | 53.3% | 66.7% | 62.2% | Local |
+| jina-v4 (standard) | 60.0% | 60.0% | 63.3% | 61.1% | Local |
+
+#### All Reranker Models
+
+| Model | test1 | test2 | test3 | **Average** | Type |
+|-------|-------|-------|-------|-------------|------|
+| voyage-rerank-2.5 | 73.3% | 53.3% | 76.7% | **67.8%** | External |
+| jina-reranker-v3 | 80.0% | 53.3% | 66.7% | 66.7% | Local |
+| bge-reranker-v2-m3 | 66.7% | 60.0% | 70.0% | 65.6% | Local |
+| qwen3-reranker-0.6b | 66.7% | 53.3% | 70.0% | 63.3% | Local |
+| qwen3-reranker-4b | 60.0% | 60.0% | 70.0% | 63.3% | Local |
+| voyage-rerank-2.5-lite | 53.3% | 53.3% | 76.7% | 61.1% | External |
+
+### 11.6 Key Insights
+
+1. **Model size doesn't always correlate with performance**:
+   - qwen3-embedding-0.6b (64.4%) outperforms qwen3-embedding-8b (62.2%)
+   - qwen3-reranker-0.6b ties with qwen3-reranker-4b (both 63.3%)
+
+2. **Contextual embeddings work when implemented correctly**:
+   - voyage-context-3 leads all embeddings at 74.4%
+   - jina-v4 late chunking improves over standard (+2.2%)
+
+3. **Local models are production-ready**:
+   - Top local embedding (qwen3-4b) is within 7.7% of best external
+   - Top local reranker (jina-reranker-v3) is within 1.1% of best external
+
+4. **Test type matters**:
+   - Single-doc (test3): Voyage models excel (83.3% embedding, 76.7% rerank)
+   - Multi-doc (test1, test2): Qwen3 and Jina models excel
+
+---
+
+## 12. Test Scripts Reference
+
+| Script | Purpose |
+|--------|---------|
+| `tests/test_jina_api_comparison.py` | Validates local server against official Jina API |
+| `tests/final_embedding_benchmark_v2.py` | Comprehensive embedding model benchmark |
+| `tests/final_reranker_benchmark.py` | Comprehensive reranker model benchmark |
+
+---
+
+**Report Last Updated**: December 11, 2024

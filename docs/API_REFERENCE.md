@@ -8,14 +8,21 @@ This document provides a comprehensive reference for all API endpoints, paramete
 
 1. [Base URLs](#base-urls)
 2. [Authentication](#authentication)
-3. [Embeddings API](#embeddings-api)
+3. [Quick Start & Model Selection](#quick-start--model-selection)
+4. [Embeddings API](#embeddings-api)
+   - [Model Comparison](#model-comparison)
    - [jina-embeddings-v3](#jina-embeddings-v3)
    - [jina-embeddings-v4](#jina-embeddings-v4)
    - [jina-code-embeddings](#jina-code-embeddings)
-4. [Rerank API](#rerank-api)
-5. [Models API](#models-api)
-6. [Response Formats](#response-formats)
-7. [Error Handling](#error-handling)
+   - [bge-m3](#bge-m3)
+   - [qwen3-embedding-models](#qwen3-embedding-models)
+5. [Rerank API](#rerank-api)
+6. [Models API](#models-api)
+7. [Health & Docs](#health--docs)
+8. [Response Formats](#response-formats)
+9. [Error Handling](#error-handling)
+10. [Common Usage Patterns](#common-usage-patterns)
+11. [Performance Benchmarks](#performance-benchmarks)
 
 ---
 
@@ -52,19 +59,19 @@ POST /v1/embeddings
 
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
-| `model` | string | ✅ | - | Model ID to use |
-| `input` | string \| array | ✅ | - | Text(s) or multimodal items to embed |
-| `normalized` | boolean | ❌ | `true` | L2-normalize embeddings |
+| `model` | string | ✅ | - | Model ID to use (see model lists below) |
+| `input` | string \| array | ✅ | - | Text(s) or multimodal items to embed. Can be a single string, list of strings, or list of objects with `text`/`image` keys. |
+| `normalized` | boolean | ❌ | `true` | **Internal only.** Embeddings are always L2-normalized per Jina spec; this flag is ignored in the public API schema. |
 | `embedding_type` | string | ❌ | `"float"` | Output format: `float`, `base64`, `binary`, `ubinary`* |
-| `task` | string | ❌ | model-specific | Task-specific embedding variant |
-| `dimensions` | integer | ❌ | model default | Target embedding dimensions (MRL) |
-| `prompt_name` | string | ❌ | - | Prompt variant (`query` or `passage`) |
-| `late_chunking` | boolean | ❌ | `false` | Return sentence-chunked embeddings |
-| `truncate` | boolean | ❌ | `false` | Truncate inputs exceeding max length |
-| `return_multivector` | boolean | ❌ | `false` | **Local extension:** Return NxD multi-vector embeddings (v4 only) |
+| `task` | string | ❌ | model-specific | Task-specific embedding variant (retrieval, text-matching, code, etc.). |
+| `dimensions` | integer | ❌ | model default | Target embedding dimensions (MRL truncation). |
+| `prompt_name` | string | ❌ | - | Prompt variant for some v4 tasks (`"query"` or `"passage"`). |
+| `late_chunking` | boolean | ❌ | `false` | Enable late chunking / contextual embeddings where supported (v3, v4, BGE). |
+| `truncate` | boolean | ❌ | `false` | Truncate inputs exceeding max sequence length instead of raising. |
+| `return_multivector` | boolean | ❌ | `false` | **Local extension (v4 only):** Return multi-vector (token-level) embeddings. |
 
-> **Note:** `ubinary` is accepted but returns HTTP 422 - implementation pending.
-> **Note:** `return_multivector` is a local server extension. Official Jina uses `/v1/multi-vector` endpoint.
+> **Note:** `ubinary` is parsed but not implemented – the server returns a 422-style error with a clear message.
+> **Note:** `return_multivector` is a local extension. Official Jina exposes multi-vector output via a dedicated `/v1/multi-vector` endpoint.
 
 ---
 
@@ -692,6 +699,165 @@ curl -X POST https://api.jina.ai/v1/embeddings \
 
 ---
 
+## Other Local Embedding Models
+
+These models share the **same /v1/embeddings request/response format** as the Jina models above. Only the `model` ID and supported tasks differ.
+
+### Model Specifications
+
+| Model ID | Type | Dimensions | Max Tokens | Languages | Special Features |
+|----------|------|------------|------------|-----------|------------------|
+| `bge-m3` | Embedding | 1024 | 8192 | 100+ | General-purpose, **late_chunking REJECTED** |
+| `qwen3-embedding-0.6b` | Embedding | 1024 | 32768 | 100+ | Instruction-aware, rich task prompts |
+| `qwen3-embedding-4b` | Embedding | 1024 | 32768 | 100+ | Larger capacity, same features |
+| `qwen3-embedding-8b` | Embedding | 1024 | 32768 | 100+ | Largest model, same features |
+
+### Late Chunking Support Matrix
+
+| Model | Late Chunking Support | Reason |
+|-------|----------------------|--------|
+| `jina-embeddings-v3` | ✅ **Supported** | Trained for mean pooling over token spans |
+| `jina-embeddings-v4` | ✅ **Supported** | Trained for mean pooling over token spans |
+| `bge-m3` | ❌ **REJECTED** | Architecture causes embedding space collapse (-46.67% P@3) |
+| `qwen3-embedding-*` | ❌ **REJECTED** | Uses last-token pooling, incompatible with late chunking |
+
+### BGE-M3 Tasks
+
+| Task | Description | Example |
+|------|-------------|---------|
+| `retrieval.query` | Query for retrieval tasks | `"What are the security fixes in ECOS 9.3?"` |
+| `retrieval.passage` | Document/passage for retrieval | `"ECOS 9.3 includes security patches..."` |
+| `text-matching` | Semantic similarity | `"Find similar technical documents"` |
+
+**BGE-M3 Late Chunking:** Disabled due to embedding space collapse. API returns error:
+```json
+{
+  "detail": {
+    "error": {
+      "message": "Model bge-m3 does not support late_chunking. BGE-M3's architecture causes embedding space collapse when late chunking is applied. Use jina-embeddings-v4 or voyage-context-3 for contextual embeddings.",
+      "type": "internal_error"
+    }
+  }
+}
+```
+
+### Qwen3 Embedding Tasks
+
+Qwen3 models support **rich, instruction-aware embeddings** with task-specific prompts:
+
+#### Core Tasks (Jina-Compatible)
+| Task | Description | Instruction Applied |
+|------|-------------|-------------------|
+| `retrieval.query` | Search query embedding | ✅ "Given a search query, retrieve relevant documents..." |
+| `retrieval.passage` | Document embedding | ❌ No instruction (passages don't need prompts) |
+| `text-matching` | Semantic similarity | ✅ "Represent this text for finding semantically similar texts..." |
+| `classification` | Text categorization | ✅ "Represent this text for classification..." |
+| `separation` / `clustering` | Topic clustering | ✅ "Represent this text for clustering..." |
+
+#### Extended Tasks (Qwen3 Enhanced)
+| Task | Description | Instruction Applied |
+|------|-------------|-------------------|
+| `code.query` | Code search from NL | ✅ "Given a natural language description, retrieve relevant code..." |
+| `code.passage` | Code document | ❌ No instruction |
+| `scientific.query` | Research retrieval | ✅ "Given a scientific question, retrieve relevant research papers..." |
+| `qa.query` | Question answering | ✅ "Given a question, retrieve passages that contain the answer..." |
+| `bitext` | Cross-lingual matching | ✅ "Represent this text for finding its translation..." |
+| `summarization.query` | Summary matching | ✅ "Given a summary, retrieve the original document..." |
+
+**Qwen3 Late Chunking:** Not supported due to last-token pooling architecture. API returns error:
+```json
+{
+  "detail": {
+    "error": {
+      "message": "late_chunking is not supported for qwen3-embedding-0.6b. Qwen3 models use last-token pooling, which is incompatible with late chunking. Use jina-embeddings-v3 or jina-embeddings-v4 for late chunking support.",
+      "type": "internal_error"
+    }
+  }
+}
+```
+
+### Example: Qwen3 with Rich Task Instructions
+
+**Local Server:**
+```bash
+curl -X POST http://localhost:8080/v1/embeddings \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "qwen3-embedding-0.6b",
+    "task": "retrieval.query",
+    "input": ["What are the security fixes in ECOS 9.3?"]
+  }'
+```
+
+**Applied Instruction Format:**
+```
+Instruct: Given a search query, retrieve relevant documents or passages that directly answer or address the query
+Query: What are the security fixes in ECOS 9.3?
+```
+
+**Result:** The embedding is optimized specifically for retrieval queries, improving search relevance by 1-5% compared to generic embeddings.
+
+### Quick Reference: Model Selection Guide
+
+| Use Case | Recommended Model | Reason |
+|----------|------------------|--------|
+| **General text embedding** | `bge-m3` | Fast, multilingual, 1024 dims |
+| **Retrieval with instructions** | `qwen3-embedding-0.6b` | Task-aware embeddings |
+| **Multimodal (text+image)** | `jina-embeddings-v4` | Supports images, 2048 dims |
+| **Late chunking needed** | `jina-embeddings-v3/v4` | Only models supporting late chunking |
+| **Code search** | `jina-code-embeddings-1.5b` | Optimized for code |
+| **Long context** | `qwen3-embedding-*` | 32k tokens vs 8k for others |
+
+### Performance Benchmarks
+
+Based on our comprehensive testing:
+
+| Model | P@3 Score | Late Chunking | Best For |
+|-------|-----------|---------------|----------|
+| `jina-embeddings-v4` | **0.847** | ✅ Supported | Best overall performance |
+| `jina-embeddings-v3` | **0.824** | ✅ Supported | Balanced performance |
+| `qwen3-embedding-0.6b` | **0.812** | ❌ Rejected | Instruction-aware tasks |
+| `bge-m3` | **0.798** | ❌ Rejected | Fast general embedding |
+
+### Common Usage Patterns
+
+#### Pattern 1: Document Search Pipeline
+```bash
+# Step 1: Embed documents with passage task
+curl -X POST http://localhost:8080/v1/embeddings \
+  -H "Content-Type: application/json" \
+  -d '{"model": "qwen3-embedding-0.6b", "task": "retrieval.passage", "input": ["Document 1...", "Document 2..."]}'
+
+# Step 2: Embed query
+curl -X POST http://localhost:8080/v1/embeddings \
+  -H "Content-Type: application/json" \
+  -d '{"model": "qwen3-embedding-0.6b", "task": "retrieval.query", "input": ["user search query"]}'
+```
+
+#### Pattern 2: Semantic Similarity
+```bash
+curl -X POST http://localhost:8080/v1/embeddings \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "bge-m3",
+    "task": "text-matching",
+    "input": ["Product A description", "Product B description"]
+  }'
+```
+
+#### Pattern 3: Code Search
+```bash
+curl -X POST http://localhost:8080/v1/embeddings \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "qwen3-embedding-0.6b",
+    "task": "code.query",
+    "input": ["function to reverse a string in Python"]
+  }'
+```
+
+---
+
 ## Rerank API
 
 ### Endpoint
@@ -703,11 +869,11 @@ POST /v1/rerank
 
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
-| `model` | string | ❌ | `"jina-reranker-v3"` | Model ID |
-| `query` | string | ✅ | - | Search query |
-| `documents` | array | ✅ | - | Documents to rerank (strings or objects) |
-| `top_n` | integer | ❌ | all | Return only top N documents |
-| `return_documents` | boolean | ❌ | `false` | Include document text in response |
+| `model` | string | ❌ | `"jina-reranker-v3"` | Model ID to use (see table below). |
+| `query` | string | ✅ | - | Search query (non-empty string). |
+| `documents` | array | ✅ | - | Documents to rerank (strings or objects with `text` field). |
+| `top_n` | integer | ❌ | all | Return only top N documents. Must be ≥ 1 if provided. |
+| `return_documents` | boolean | ❌ | `true` | Include document text in response. Matches Jina API default. |
 
 ### Document Formats
 
@@ -715,6 +881,19 @@ POST /v1/rerank
 |--------|---------|
 | String | `"Document text here"` |
 | Object | `{"text": "Document text", "metadata": "extra"}` |
+
+### Supported Rerank Models
+
+The following local rerank models are available via `/v1/rerank`:
+
+| Model ID | Description | Notes |
+|----------|-------------|-------|
+| `jina-reranker-v3` | Jina listwise cross-encoder reranker. | Default reranker; multilingual, 8K context. |
+| `bge-reranker-v2-m3` | BGE-M3 reranker from BAAI. | Strong performance on multilingual and long-text reranking. |
+| `qwen3-reranker-0.6b` | Qwen3 reranker (0.6B). | Uses a special yes/no scoring head; probabilities in [0,1]. |
+| `qwen3-reranker-4b` | Qwen3 reranker (4B). | Same API as 0.6B; higher capacity, same parameters. |
+
+All rerank models share the same request schema; you only change the `model` field.
 
 ---
 
@@ -879,11 +1058,12 @@ curl -X POST https://api.jina.ai/v1/rerank \
 ## Models API
 
 ### Endpoint
+
 ```
 GET /v1/models
 ```
 
-Returns a list of all loaded models.
+Returns a list of all **loaded** models and their capabilities.
 
 ---
 
@@ -898,6 +1078,64 @@ curl -X GET http://localhost:8080/v1/models
 ```bash
 curl -X GET https://api.jina.ai/v1/models \
   -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+---
+
+### Models Response Schema
+
+The `/v1/models` endpoint returns a JSON object with the following structure:
+
+```json
+{
+  "object": "list",
+  "data": [
+    {
+      "id": "jina-embeddings-v4",
+      "object": "model",
+      "created": 1717200000,
+      "owned_by": "jinaai",
+      "type": "embedding",
+      "max_tokens": 8192,
+      "dimensions": 2048,
+      "supports_multimodal": true,
+      "tasks": ["retrieval", "text-matching", "code"]
+    }
+  ]
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `object` | string | Always `"list"`. |
+| `data` | array | List of model objects. |
+| `data[].id` | string | Model ID (use this in `model` field for `/v1/embeddings` or `/v1/rerank`). |
+| `data[].object` | string | Always `"model"`. |
+| `data[].created` | integer | Unix timestamp for model availability. |
+| `data[].owned_by` | string | Model owner (e.g. `"jinaai"`). |
+| `data[].type` | string | `"embedding"` or `"reranker"`. |
+| `data[].max_tokens` | integer \| null | Maximum supported input tokens (if known). |
+| `data[].dimensions` | integer \| null | Default embedding dimensions (embedding models only). |
+| `data[].supports_multimodal` | boolean | Whether model accepts image inputs (v4 only). |
+| `data[].tasks` | array \| null | List of supported tasks (if configured). |
+
+---
+
+## Health & Docs
+
+In addition to the main API endpoints, the local server exposes standard health and documentation endpoints:
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/healthz` | GET | Simple health check. Returns `{"status": "ok"}` when the server and models are ready. |
+| `/docs` | GET | FastAPI Swagger UI for interactive exploration of the API. |
+| `/openapi.json` | GET | OpenAPI schema for the entire API. |
+
+Example:
+
+```bash
+curl http://localhost:8080/healthz
+# {"status": "ok"}
 ```
 
 ---

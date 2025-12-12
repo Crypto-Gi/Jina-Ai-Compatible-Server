@@ -1,0 +1,106 @@
+{
+"corpus": [
+{
+"id": "S1",
+"text": "At Acme Capital, Priya Shah built a Python pipeline to ingest Apple 10-Q filings nightly."
+},
+{
+"id": "S2",
+"text": "The ETL job loads raw XBRL into Postgres database fin_reports, normalizing balance_sheet and income_statement tables."
+},
+{
+"id": "S3",
+"text": "Next, Carlos Monteiro’s script computes df['ebit_margin'] = ebit / revenue for AAPL, MSFT, and META."
+},
+{
+"id": "S4",
+"text": "For NovaBank PLC, they calculate net_debt_to_ebitda, interest_coverage, and flag breaches when ratios exceed predefined covenant thresholds."
+},
+{
+"id": "S5",
+"text": "Mei Lin’s valuation module derives discounted_cash_flow and enterprise_value_to_ebitda multiples, storing results in table equity_scores_2025."
+},
+{
+"id": "S6",
+"text": "A FastAPI microservice atlas_scores exposes /scores/{ticker} returning JSON with z_score, upside_pct, and textual recommendation."
+},
+{
+"id": "S7",
+"text": "Backtests rebalance monthly; backtest.py logs portfolio PnL, max_drawdown, Sharpe ratio, and turnover for strategy quantum_growth_v2."
+},
+{
+"id": "S8",
+"text": "Feature matrices for Horizon Energy Inc, ticker HZEN, are persisted using np.save('features_HZEN_Q4.npy', x)."
+},
+{
+"id": "S9",
+"text": "A reporting script generates PDF dashboards comparing forecast EPS versus Goldman Sachs consensus for Apple, Tesla, and Meta."
+},
+{
+"id": "S10",
+"text": "Finally, Acme Capital’s investment committee reviews those dashboards to approve trades, closing the loop on Priya’s pipeline."
+}
+],
+"queries": [
+{
+"id": "R1",
+"task": "rerank",
+"query": "I’m tracing the governance chain from raw filings all the way to human trade decisions; which descriptions capture that upstream-to-downstream flow?",
+"gold_top3": ["S1", "S2", "S10"]
+},
+{
+"id": "R2",
+"task": "rerank",
+"query": "Show me where the system talks about monitoring downside and rule breaches, not just valuations or recommendations.",
+"gold_top3": ["S4", "S7", "S9"]
+},
+{
+"id": "R3",
+"task": "rerank",
+"query": "I want the parts that transform accounting data into model-ready scores that other services can query, rather than raw storage or final PDFs.",
+"gold_top3": ["S3", "S5", "S6"]
+},
+{
+"id": "R4",
+"task": "rerank",
+"query": "Suppose a data scientist asks, “Where are issuer-specific tensors for later training written out?” — which sentences best answer that?",
+"gold_top3": ["S8", "S5", "S7"]
+},
+{
+"id": "R5",
+"task": "rerank",
+"query": "I’m reviewing how internal views are contrasted with external expectations from the Street; where is that comparison actually described?",
+"gold_top3": ["S9", "S5", "S6"]
+},
+{
+"id": "Q1",
+"task": "retrieval",
+"query": "Whose data engineering work is effectively on the line when the committee finally reviews those PDF dashboards to approve trades?",
+"gold_top3": ["S10", "S1", "S9"]
+},
+{
+"id": "Q2",
+"task": "retrieval",
+"query": "Where do we see a single piece of code applying the same profitability metric to several large tech names at once?",
+"gold_top3": ["S3", "S2", "S1"]
+},
+{
+"id": "Q3",
+"task": "retrieval",
+"query": "I need the part that talks about evaluating a whole strategy over time, with risk-adjusted metrics, not just single-name analytics.",
+"gold_top3": ["S7", "S5", "S6"]
+},
+{
+"id": "Q4",
+"task": "retrieval",
+"query": "Which snippet explains where Horizon Energy’s model inputs end up living on disk, rather than how they’re scored?",
+"gold_top3": ["S8", "S5", "S7"]
+},
+{
+"id": "Q5",
+"task": "retrieval",
+"query": "I only care about the very first moment when raw regulatory filings touch your internal database stack; where is that described?",
+"gold_top3": ["S2", "S1", "S3"]
+}
+]
+}

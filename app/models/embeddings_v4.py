@@ -458,47 +458,92 @@ class EmbeddingsV4Wrapper(EmbeddingModelWrapper):
         
         # Process text inputs with late chunking (concatenated)
         if text_inputs:
-            # Step 1: Concatenate all texts
+            # Step 1: Concatenate all texts with separator
             separator = "\n\n"
             concatenated_text = separator.join(text_inputs)
             
-            # Step 2: Get token-level embeddings using multi-vector mode
-            # This gives us per-token embeddings for the entire concatenated text
+            # Step 2: Get token-level embeddings using VLM's last hidden states
+            # IMPORTANT: We use output_vlm_last_hidden_states=True to get 2048-dim token embeddings
+            # NOT return_multivector=True which returns 128-dim embeddings for late-interaction retrieval
+            # See: https://huggingface.co/jinaai/jina-embeddings-v4/discussions/68
             with torch.no_grad():
-                token_embs = self.model.encode_text(
-                    texts=[concatenated_text],
-                    task=task,
-                    prompt_name=prompt_name,
-                    return_multivector=True,
+                # Use the model's processor to tokenize with proper prefix
+                prefix = "Query" if prompt_name == "query" else "Passage"
+                processed = self.model.processor.process_texts(
+                    [concatenated_text],
+                    max_length=self.max_tokens if truncate else None,
+                    prefix=prefix,
                 )
-                if isinstance(token_embs, list):
-                    token_embeddings = token_embs[0]
-                else:
-                    token_embeddings = token_embs
+                batch = {k: v.to(self.device) for k, v in processed.items()}
+                
+                # Get VLM's last hidden states (2048-dim per token)
+                outputs = self.model(
+                    **batch,
+                    task_label=task,
+                    output_vlm_last_hidden_states=True,
+                )
+                
+                # vlm_last_hidden_states shape: [batch, seq_len, 2048]
+                token_embeddings = outputs.vlm_last_hidden_states[0]  # Remove batch dim
                     
                 if not isinstance(token_embeddings, torch.Tensor):
                     token_embeddings = torch.tensor(token_embeddings, device=self.device)
             
             total_tokens += token_embeddings.shape[0]
             
-            # Step 3: Find token boundaries for each original input
-            # We estimate based on tokenizing each text separately
-            chunk_spans = []
-            current_token = 0
+            # Step 3: Find EXACT token boundaries using offset mapping
+            # This matches Jina's official API behavior
+            full_text = f"{prefix}: {concatenated_text}"
+            encoded = self.tokenizer(
+                full_text, 
+                return_offsets_mapping=True, 
+                add_special_tokens=False
+            )
+            offset_mapping = encoded["offset_mapping"]
             
+            # Calculate character positions for each original text
+            prefix_len = len(f"{prefix}: ")
+            char_ranges = []
+            current_pos = prefix_len
             for text in text_inputs:
-                # Estimate tokens for this text
-                text_tokens = len(self.tokenizer.encode(text, add_special_tokens=False))
+                start_char = current_pos
+                end_char = current_pos + len(text)
+                char_ranges.append((start_char, end_char))
+                current_pos = end_char + len(separator)
+            
+            # Map character ranges to token ranges
+            chunk_spans = []
+            for i, (start_char, end_char) in enumerate(char_ranges):
+                # Find first token that overlaps with this text
+                start_token = None
+                end_token = len(offset_mapping)
+                
+                for t, (tok_start, tok_end) in enumerate(offset_mapping):
+                    # Token overlaps with text start
+                    if tok_end > start_char and start_token is None:
+                        start_token = t
+                    # Token starts at or after text end
+                    if tok_start >= end_char:
+                        end_token = t
+                        break
+                
+                # Handle edge case where start_token wasn't found
+                if start_token is None:
+                    start_token = 0
+                
+                # Include trailing separator token if it contains part of the text
+                # (e.g., ".\n\n" is one token that includes both period and separator)
+                if end_token < len(offset_mapping):
+                    tok_start, tok_end = offset_mapping[end_token]
+                    # If this token starts before our text ends, include it
+                    if tok_start < end_char:
+                        end_token += 1
                 
                 chunk_spans.append(ChunkSpan(
-                    start_token=current_token,
-                    end_token=min(current_token + text_tokens, token_embeddings.shape[0]),
-                    text=text,
+                    start_token=start_token,
+                    end_token=min(end_token, token_embeddings.shape[0]),
+                    text=text_inputs[i],
                 ))
-                
-                # Account for separator tokens
-                sep_tokens = len(self.tokenizer.encode(separator, add_special_tokens=False))
-                current_token += text_tokens + sep_tokens
             
             # Step 4: Apply late chunking pooling - one embedding per original text input
             attention_mask = torch.ones(token_embeddings.shape[0], device=self.device)

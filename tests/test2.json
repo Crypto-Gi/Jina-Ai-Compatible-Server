@@ -1,0 +1,106 @@
+{
+  "corpus": [
+    {
+      "id": "S1",
+      "text": "At Helios Quant, lead engineer Sarah Malik designed a GPU microservice to evaluate client trades."
+    },
+    {
+      "id": "S2",
+      "text": "The trade desk at Helios calls /trade/evaluate to receive latency, confidence, and preliminary risk flags."
+    },
+    {
+      "id": "S3",
+      "text": "Behind that endpoint, data scientist Miguel Alvarez tunes models predicting execution quality under volatile market conditions."
+    },
+    {
+      "id": "S4",
+      "text": "Each prediction estimates slippage, value-at-risk, and margin usage for portfolios managed by Julia Chen."
+    },
+    {
+      "id": "S5",
+      "text": "Risk officer Daniel Rossi insists every evaluated trade is logged with timestamps, portfolio IDs, and anonymized outcomes."
+    },
+    {
+      "id": "S6",
+      "text": "The governance memo states that high-risk trades require real-time approvals from Daniel before any order is submitted."
+    },
+    {
+      "id": "S7",
+      "text": "Helios stores configuration for model versions, credit limits, and Kafka topics in tightly controlled encrypted config files."
+    },
+    {
+      "id": "S8",
+      "text": "QA lead Amina Patel runs integration simulations replaying crisis-era prices, checking PnL paths remain within documented tolerances."
+    },
+    {
+      "id": "S9",
+      "text": "SRE engineer Victor Novak monitors dashboards for GPU utilization, failed evaluations, and tail latency across notional buckets."
+    },
+    {
+      "id": "S10",
+      "text": "For regulators, Helios archives decision explanations, model fingerprints, and input summaries in WORM-compliant storage systems."
+    }
+  ],
+  "queries": [
+    {
+      "id": "R1",
+      "task": "rerank",
+      "query": "I want the parts that describe how Helios moves from evaluating a trade to satisfying oversight and regulators.",
+      "gold_top3": ["S5", "S6", "S10"]
+    },
+    {
+      "id": "R2",
+      "task": "rerank",
+      "query": "Which descriptions focus on Daniel Rossi's responsibilities around risky trades and how they are controlled?",
+      "gold_top3": ["S5", "S6", "S4"]
+    },
+    {
+      "id": "R3",
+      "task": "rerank",
+      "query": "Show me where operational resilience is covered, including stress tests and live production health of the evaluation service.",
+      "gold_top3": ["S8", "S9", "S1"]
+    },
+    {
+      "id": "R4",
+      "task": "rerank",
+      "query": "I need the sentences that explain how individual portfolios are assessed under stress rather than just raw trade calls.",
+      "gold_top3": ["S4", "S8", "S3"]
+    },
+    {
+      "id": "R5",
+      "task": "rerank",
+      "query": "Where is model governance encoded through versioning, configuration management, and the ability to trace decisions back to specific models?",
+      "gold_top3": ["S7", "S3", "S10"]
+    },
+    {
+      "id": "Q1",
+      "task": "retrieval",
+      "query": "If regulators questioned whether every sensitive decision was recorded properly, which parts would they examine first?",
+      "gold_top3": ["S5", "S10", "S6"]
+    },
+    {
+      "id": "Q2",
+      "task": "retrieval",
+      "query": "Which description explains who originally designed the GPU-based evaluation service the Helios desk relies on each day?",
+      "gold_top3": ["S1", "S2", "S3"]
+    },
+    {
+      "id": "Q3",
+      "task": "retrieval",
+      "query": "I only care about the interaction between the trading desk and the evaluation system itself, not monitoring or archives.",
+      "gold_top3": ["S2", "S1", "S3"]
+    },
+    {
+      "id": "Q4",
+      "task": "retrieval",
+      "query": "Find the snippet that talks about replaying past market crises to check how the system behaves financially.",
+      "gold_top3": ["S8", "S4", "S7"]
+    },
+    {
+      "id": "Q5",
+      "task": "retrieval",
+      "query": "Which description is most useful if I want to know who watches live infrastructure metrics during trading hours?",
+      "gold_top3": ["S9", "S8", "S1"]
+    }
+  ]
+}

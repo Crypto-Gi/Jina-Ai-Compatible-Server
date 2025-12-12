@@ -18,16 +18,34 @@ from app.models.embeddings_v3 import EmbeddingsV3Wrapper
 from app.models.embeddings_v4 import EmbeddingsV4Wrapper
 from app.models.reranker import RerankerWrapper
 
+# BGE models (BAAI)
+from app.models.bge_embeddings import BGEEmbeddingsWrapper
+from app.models.bge_reranker import BGERerankerWrapper
+
+# Qwen3 models (Alibaba)
+from app.models.qwen_embeddings import QwenEmbeddingsWrapper
+from app.models.qwen_reranker import QwenRerankerWrapper
+
 logger = get_logger(__name__)
 
 
 # All available models
 ALL_MODEL_IDS = [
+    # Jina models
     "jina-embeddings-v3",
     "jina-embeddings-v4",
     "jina-code-embeddings-0.5b",
     "jina-code-embeddings-1.5b",
     "jina-reranker-v3",
+    # BGE models (BAAI)
+    "bge-m3",
+    "bge-reranker-v2-m3",
+    # Qwen3 models (Alibaba)
+    "qwen3-embedding-0.6b",
+    "qwen3-embedding-4b",
+    "qwen3-embedding-8b",
+    "qwen3-reranker-0.6b",
+    "qwen3-reranker-4b",
 ]
 
 
@@ -85,11 +103,21 @@ class ModelRegistry:
             Instantiated model wrapper
         """
         wrapper_map: dict[str, type[BaseModelWrapper] | callable] = {
+            # Jina models
             "jina-embeddings-v3": EmbeddingsV3Wrapper,
             "jina-embeddings-v4": EmbeddingsV4Wrapper,
             "jina-code-embeddings-0.5b": lambda: CodeEmbeddingsWrapper("0.5b"),
             "jina-code-embeddings-1.5b": lambda: CodeEmbeddingsWrapper("1.5b"),
             "jina-reranker-v3": RerankerWrapper,
+            # BGE models (BAAI)
+            "bge-m3": BGEEmbeddingsWrapper,
+            "bge-reranker-v2-m3": BGERerankerWrapper,
+            # Qwen3 models (Alibaba)
+            "qwen3-embedding-0.6b": lambda: QwenEmbeddingsWrapper("0.6b"),
+            "qwen3-embedding-4b": lambda: QwenEmbeddingsWrapper("4b"),
+            "qwen3-embedding-8b": lambda: QwenEmbeddingsWrapper("8b"),
+            "qwen3-reranker-0.6b": lambda: QwenRerankerWrapper("0.6b"),
+            "qwen3-reranker-4b": lambda: QwenRerankerWrapper("4b"),
         }
 
         if model_id not in wrapper_map:

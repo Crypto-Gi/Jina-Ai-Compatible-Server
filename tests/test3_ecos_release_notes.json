@@ -1,0 +1,200 @@
+{
+  "metadata": {
+    "source": "ECOS_9.2.4.0_Release_Notes_RevB.md",
+    "description": "Silver Peak Unity ECOS 9.2.4.0 Release Notes - sequential chunks from same document for late chunking evaluation",
+    "total_chunks": 17,
+    "approx_tokens": 7500
+  },
+  "corpus": [
+    {
+      "id": "C1",
+      "text": "This document provides important information about ECOS 9.2.4.0, including top items for the release, release limitations, new features, issues fixed, upgrade considerations, and known issues. This release includes fixes for OpenSSL vulnerabilities CVE-2022-4304, CVE-2022-4450, CVE-2023-0215, and CVE-2023-0286. These are covered in Aruba Product Security Advisory ID ARUBA-PSA-2023-001. Before upgrading to ECOS 9.2.4.0, except if you are upgrading from 8.3.3.0+, you need to disable the 'Verify Image Signature' option under Orchestrator's Advanced Security Settings. You can enable this option again after the upgrade. After an appliance is upgraded to ECOS 9.2.4.0 and if image signature verification is enabled, the appliance can only be upgraded to newer releases that are signed using the Silver Peak certificate. NOTE: FIPS appliances, or appliances with image signature verification enabled, will need to be upgraded to ECOS 8.3.6.1 before upgrading to 9.2.4.0. ECOS 9.2.4.0 requires Silver Peak Unity Orchestrator version 9.2.4 or later."
+    },
+    {
+      "id": "C2",
+      "text": "Before You Begin: 8.1.7.x customers should upgrade to 8.1.7.22, or a later 8.1.7.x release, before the upgrade. 8.1.9.x customers should upgrade to 8.1.9.15, or a later 8.1.9.x release, before the upgrade. If you need to roll back the upgrade and you did not upgrade to 8.1.9.15 first, you must first do the following on the appliance before the rollback or the procedure will fail: 1. Unlink the /var/tmp, /var/run, and /var/lock symbolic links 2. If they don't already exist, create tmp, run, and lock directories in /var. Orchestrator and Cloud Portal certificate verification is enabled by default on new EdgeConnect appliances running ECOS 8.3.0.4 and higher."
+    },
+    {
+      "id": "C3",
+      "text": "Release Limitations - Feature Limitations: When using the Radius snooping feature, source and destination must be collocated. Feature Limitations when Segmentation is Enabled: IPv6 is not supported. Network Address Translation (NAT) is not supported when segmentation is enabled - use Inter-Segment NAT instead. Bridge Mode and Server Mode are not supported - Inline Router Mode is the only mode supported. VRRP works as expected, but you cannot configure two groups with the same IP address. Flow redirection is not working when segmentation is enabled."
+    },
+    {
+      "id": "C4",
+      "text": "Features Supported in the Default or Same Segment: The IPSLA HTTP monitor is supported only in the default segment. Multicast is supported in the default segment. Management Services HTTP(S), Cloud Portal, Orchestrator are only supported in the default segment. RADIUS/TACACS+ are only supported in the default segment. LAN-side passthrough tunnels (IPSec and GRE) must use the default segment. AWS, Azure, and Check Point work in the default segment. DHCP server is only supported in the default segment, but IP address pools cannot overlap."
+    },
+    {
+      "id": "C5",
+      "text": "Additional Considerations: All appliances in your SD-WAN network must be running ECOS 9.0.x.x before the advanced segmentation feature can be enabled. Peer priority and admin distance settings will be applied globally across all segments. If you are using end-to-end Zone Based Firewall, it is recommended that you review the Zone Based Firewall document. Enabling segmentation is a one-way operation. When enabled, it requires deleting the entire Overlay network and policies. Orchestrator will recreate every tunnel and policy for the entire network."
+    },
+    {
+      "id": "C6",
+      "text": "Issues Fixed in ECOS 9.2.4.0: ID 67845 - The Cluster Peer Down alarm was being raised too often, resulting in asymmetric flow redirection. ID 67473 - A configuration issue stored incorrect Admin distance values in a helper data structure, resulting in BGP route loop prevention not functioning as expected. ID 67397 - A misconfiguration in the cifs_proxy_monitor's select timer resulted in the proxy service rebooting unexpectedly. ID 67361 - When segmentation was enabled, an IPv6 configuration error led to tunnel traffic erroneously appearing in application reports for EdgeHA appliances. ID 67296 - When trying to establish BGP peering from a newly created VRF segment, the Peer State value appeared empty in the web UI."
+    },
+    {
+      "id": "C7",
+      "text": "Issues Fixed continued: ID 67027 - On the EC-10104 appliance, a routing error erroneously classified standard ports such as lan0 and wan0 as VLAN sub-interfaces, resulting in a configuration error that caused routerd to reboot unexpectedly. ID 66760 - A command issue created a potential vulnerability where admin users could execute arbitrary code as the root user. ID 66644 - The multicast engine was not recognizing or forwarding SSDP packets. ID 66641 - The BGP peer was not establishing to the ISP neighbor on wan0. ID 66590 - If no subnets were specified in VRF, then the force-internal flag was not set, causing a classification issue where traffic was improperly identified as internal."
+    },
+    {
+      "id": "C8",
+      "text": "Issues Fixed continued: ID 66545 - Subnet API documentation contained some missing fields, resulting in dropped API calls. ID 66398 - A duplicate or overlay ID was causing a bonded tunnel to enter a misconfigured state. ID 66252 - The jsond process stopped unexpectedly, causing the web UI to reboot. ID 66144 - A configuration vulnerability allowed the potential upload of malicious files through the web UI. ID 66024 - If the appliance rebooted during the period between when active and passive seed-ids were pushed, the active seed-id was lost and tunnels dropped unexpectedly. ID 65904 - A validation issue created a potential command injection vulnerability in the command line interface."
+    },
+    {
+      "id": "C9",
+      "text": "Issues Fixed continued: ID 65888 - ECOS interface changes caused the NTPD service to restart, in turn causing NTP to reboot unexpectedly. ID 65842 - A validation issue prevented IPv6 addresses from being used in passthrough tunnel configuration. ID 63884 - An invalid tunnel flow entry caused packets to be dropped. ID 63835 - Default SSH options on the appliance were erroneously presenting as security issues during vulnerability scans. ID 62644 - A file authentication issue created a potential vulnerability where admin users had read access to sensitive files. ID 62643 - A command issue created a potential vulnerability where admin users had read access to sensitive files. ID 62609 - A command issue created a potential vulnerability where admin users could execute shell commands as the root user. ID 59961 - A network monitoring vulnerability allowed the potential execution of arbitrary shell scripts. ID 00447 - Addresses CVE-2022-4304, CVE-2022-4450, CVE-2023-0215, and CVE-2023-0286."
+    },
+    {
+      "id": "C10",
+      "text": "Upgrade Considerations - Change in Enforce Return Tunnel Behavior: Starting with ECOS 9.0.4.0, return traffic is placed in the same tunnel from which forward traffic is received only when no better route is found. When a better route (either with lower metric or higher peer priority) is available, return traffic may be placed in a different tunnel. Minor Alarm Upon Upgrading from Older ECOS Images: An alarm may trigger on Orchestrator version 9.1 or newer when a pair of appliances deployed in EdgeHA configuration are upgraded from ECOS version 9.0 or older to ECOS version 9.1 or newer, or when the number of EdgeHA subnets is less than 32."
+    },
+    {
+      "id": "C11",
+      "text": "New Configuration Requirement for IKE-based IPSec Tunnels: Under the presence of NAT devices, IKE_ID must be configured correctly for the tunnel to come up; there is no more wildcard lookup for pre-shared keys (PSK). Previously, for IKEv1 and IKEv2, PSK lookup was based on (ANY, remote IKE_ID). This caused unreliable PSK lookup when there were two different local IKE_IDs with different PSKs going to the same remote IKE_ID. Now, for IKEv1 and IKEv2, PSK lookup is based on (local IKE_ID, remote IKE_ID), which returns PSK reliably. Note: When IKE_IDs are not configured (left blank), EdgeConnect assumes tunnel endpoint IP addresses as IKE_IDs."
+    },
+    {
+      "id": "C12",
+      "text": "When upgrading to ECOS 9.2.4.0 with IPSec tunnels: In Orchestrator 9.1.3 or later, all Orchestrated third-party IPSec tunnels and SDWAN fabric IKE IPSec tunnels (with or without NAT devices in between) should come up as expected, as Orchestrator sets IKE_IDs explicitly. For manually created third-party IPSec tunnels: With NAT devices and IKE_IDs configured - Tunnel UP. With NAT devices and without IKE_IDs configured - Tunnel DOWN. Without NAT devices and with IKE_IDs configured - Tunnel UP. Without NAT devices and without IKE_IDs configured - Tunnel UP."
+    },
+    {
+      "id": "C13",
+      "text": "Change in DHCP Option Values: Starting with ECOS 8.3.3.0, DHCP option 43 and option 63 values will be written to dhcpd.conf exactly as entered by the user in the UI. In earlier releases, user input was enclosed in double quotes before being written to dhcpd.conf. For any value that had been entered in the UI enclosed in double quotes, the quotes will be removed upon upgrade. DHCP Option 43 Value Error: DHCP option 43 values should be in colon-separated hex format (e.g., fe:02). If you have DHCP option 43 configured, ensure the value is in colon-separated hex format before upgrading."
+    },
+    {
+      "id": "C14",
+      "text": "Route Map Creation when Upgrading from 8.1.9.x: When upgrading from 8.1.9.x to 8.3.0.x, existing route redistribution configurations will be migrated to route maps. Static routes with the options 'Advertise to Silver Peak Peers,' 'Advertise to OSPF Peers,' and 'Advertise to BGP Peers' will be added as prefix-based entries in the respective route maps. BGP Peer Export Policies will be converted and added to route maps, which are created per peer. OSPF configurations will be converted to route maps based on the configuration that is currently in place on the appliance. A new static route configured on an appliance after upgrading to ECOS 8.3.x will not be advertised to local BGP and OSPF routing peers on remote EdgeConnect appliances running 8.1.9.x and earlier."
+    },
+    {
+      "id": "C15",
+      "text": "Orchestrator Certificate Check - Internet Access and Proxy Considerations: In this ECOS release, appliances are configured to reject self-signed and privately signed certificates by default. If Orchestrator does not have a certificate signed by a public CA, the appliance will fail to connect to Orchestrator. This feature can be disabled on Orchestrator under Advanced Security Settings. In a typical deployment, the appliance connects to Cloud Portal over the internet by establishing a TLS socket to Orchestrator using Cloud Portal as a proxy. Proxies typically have internally signed certificates, which will cause certificate validation of Cloud Portal to fail."
+    },
+    {
+      "id": "C16",
+      "text": "Removal of Weak Ciphers: Support for older, weak ciphers has been removed from SNMP, HTTPS, and ssh. Please use modern tools to manage Silver Peak appliances. Additionally, TLS 1.0 and 1.1 are no longer supported for HTTPS access - only TLS 1.2 is supported. Limited Support for Inline Router Mode on x600: Inline router mode support on x600 platforms is limited. Please contact customer support if you wish to enable inline router mode on x600 model. Removal of ip datapath route Command: The 'ip datapath route' CLI command has been replaced with the 'subnet' command. No Support for Specific NX-1700 Appliances: ECOS 9.2.4.0 does not support NX-1700 appliances with part number 200404-001."
+    },
+    {
+      "id": "C17",
+      "text": "Known Issues in ECOS 9.2.4.0: ID 67577 - The EC-10104 appliance does not currently support bridge mode. ID 65980 - When the hub appliance is set to 'Do Not Re-Advertise Routes,' the spoke does not learn the hub's locally connected IPv6 route. ID 63472 - When there are ECMP routes on the LAN side, IP spoof check drops flows coming on LAN interfaces that have ECMP. As a workaround, if there are ECMP routes on the LAN side, disable IP spoof check in the Firewall Protection Profile. ID 63049 - When a protection profile is enabled, traceroute via SD-WAN tunnel receives no response from the remote appliance. ID 62864 - Route status indicates Up when peer interface is Down."
+    }
+  ],
+  "queries": [
+    {
+      "id": "R1",
+      "task": "rerank",
+      "query": "What security vulnerabilities are addressed in this ECOS release and where can I find the official security advisory?",
+      "gold_top3": ["C1", "C9", "C8"]
+    },
+    {
+      "id": "R2",
+      "task": "rerank",
+      "query": "I need to configure IPSec tunnels through a NAT device - what are the new requirements for IKE_ID and pre-shared key lookup?",
+      "gold_top3": ["C11", "C12", "C10"]
+    },
+    {
+      "id": "R3",
+      "task": "rerank",
+      "query": "What features are NOT supported when network segmentation is enabled on EdgeConnect appliances?",
+      "gold_top3": ["C3", "C4", "C5"]
+    },
+    {
+      "id": "R4",
+      "task": "rerank",
+      "query": "Which bug fixes in this release address potential security vulnerabilities where admin users could execute commands or access sensitive files?",
+      "gold_top3": ["C7", "C8", "C9"]
+    },
+    {
+      "id": "R5",
+      "task": "rerank",
+      "query": "What changes were made to DHCP option handling and what format should option 43 values use after upgrading?",
+      "gold_top3": ["C13", "C4", "C1"]
+    },
+    {
+      "id": "Q1",
+      "task": "retrieval",
+      "query": "What version of Orchestrator is required before upgrading appliances to ECOS 9.2.4.0?",
+      "gold_top3": ["C1", "C2", "C10"]
+    },
+    {
+      "id": "Q2",
+      "task": "retrieval",
+      "query": "How do I roll back from ECOS 8.3.x.x to an earlier version if I didn't upgrade to 8.1.9.15 first?",
+      "gold_top3": ["C2", "C1", "C14"]
+    },
+    {
+      "id": "Q3",
+      "task": "retrieval",
+      "query": "What TLS versions are supported for HTTPS access after upgrading and what happened to weak ciphers?",
+      "gold_top3": ["C16", "C15", "C1"]
+    },
+    {
+      "id": "Q4",
+      "task": "retrieval",
+      "query": "What is the workaround for the IP spoof check issue when ECMP routes exist on the LAN side?",
+      "gold_top3": ["C17", "C6", "C7"]
+    },
+    {
+      "id": "Q5",
+      "task": "retrieval",
+      "query": "Why might my appliance fail to connect to Orchestrator after upgrading, and how can I fix certificate validation issues?",
+      "gold_top3": ["C15", "C2", "C1"]
+    },
+    {
+      "id": "R6",
+      "task": "rerank",
+      "query": "My tunnels keep dropping after the appliance reboots unexpectedly during a seed-id synchronization window - what went wrong?",
+      "gold_top3": ["C8", "C6", "C9"]
+    },
+    {
+      "id": "R7",
+      "task": "rerank",
+      "query": "We're seeing routing loops in our BGP configuration and the admin distance values seem corrupted - is this a known problem?",
+      "gold_top3": ["C6", "C7", "C14"]
+    },
+    {
+      "id": "R8",
+      "task": "rerank",
+      "query": "Our security audit flagged SSH configuration issues and we need to prove they're false positives from the appliance defaults.",
+      "gold_top3": ["C9", "C16", "C8"]
+    },
+    {
+      "id": "R9",
+      "task": "rerank",
+      "query": "The network team wants to use AWS integration from a non-default segment but traffic isn't flowing - what's the constraint?",
+      "gold_top3": ["C4", "C3", "C5"]
+    },
+    {
+      "id": "R10",
+      "task": "rerank",
+      "query": "After enabling segmentation, we can't go back to our previous network design - was this expected behavior?",
+      "gold_top3": ["C5", "C3", "C4"]
+    },
+    {
+      "id": "Q6",
+      "task": "retrieval",
+      "query": "The web UI keeps crashing and we traced it to a JSON process failure - has this been addressed?",
+      "gold_top3": ["C8", "C7", "C6"]
+    },
+    {
+      "id": "Q7",
+      "task": "retrieval",
+      "query": "Our manually configured VPN tunnels through the firewall stopped working after the upgrade but the orchestrated ones are fine.",
+      "gold_top3": ["C12", "C11", "C10"]
+    },
+    {
+      "id": "Q8",
+      "task": "retrieval",
+      "query": "The new appliance model we just deployed has port classification problems where lan0 is being treated as a VLAN interface.",
+      "gold_top3": ["C7", "C17", "C6"]
+    },
+    {
+      "id": "Q9",
+      "task": "retrieval",
+      "query": "We're running a mixed environment with some appliances on 8.1.9.x and new static routes aren't propagating to the older devices.",
+      "gold_top3": ["C14", "C2", "C5"]
+    },
+    {
+      "id": "Q10",
+      "task": "retrieval",
+      "query": "Our EdgeHA pair triggered an alarm after upgrading even though everything seems to be working correctly.",
+      "gold_top3": ["C10", "C6", "C5"]
+    }
+  ]
+}
